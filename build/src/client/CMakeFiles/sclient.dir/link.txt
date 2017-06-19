@@ -1,0 +1,1 @@
+/usr/bin/cc      CMakeFiles/sclient.dir/svpn_client.c.o CMakeFiles/sclient.dir/svpn_fd.c.o CMakeFiles/sclient.dir/main_client.c.o  -o ../../../bin/sclient  -L/home/ankit/git/new/S-VPN-master/lib -rdynamic ../../../lib/libsvpn.a -Wl,-rpath,/home/ankit/git/new/S-VPN-master/lib 

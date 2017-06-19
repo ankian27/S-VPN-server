@@ -1,0 +1,3 @@
+/home/ankit/git/new/S-VPN-master/build/src/client/CMakeFiles/sclient.dir
+/home/ankit/git/new/S-VPN-master/build/src/server/CMakeFiles/sserver.dir
+/home/ankit/git/new/S-VPN-master/build/src/lib/CMakeFiles/svpn.dir
