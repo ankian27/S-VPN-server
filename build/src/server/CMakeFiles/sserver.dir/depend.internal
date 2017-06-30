@@ -12,6 +12,8 @@ src/server/CMakeFiles/sserver.dir/svpn_fd.c.o
  /home/ankit/git/new/S-VPN-master/src/server/svpn_server.h
 src/server/CMakeFiles/sserver.dir/svpn_server.c.o
  ../include/crypt.h
+ ../include/dc_bytecounter.h
+ ../include/minicomp.h
  ../include/svpn_net.h
  ../include/util.h
  /home/ankit/git/new/S-VPN-master/src/server/svpn_fd.h

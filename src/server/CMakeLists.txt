@@ -1,3 +1,3 @@
 FILE(GLOB SOURCE_SERVER "./*.c")
 ADD_EXECUTABLE(sserver ${SOURCE_SERVER})
-TARGET_LINK_LIBRARIES(sserver svpn)
+TARGET_LINK_LIBRARIES(sserver svpn -lm -lz)

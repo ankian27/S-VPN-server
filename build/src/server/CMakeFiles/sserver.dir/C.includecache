@@ -8,6 +8,38 @@
 
 ../include/crypt.h
 
+../include/dc_bytecounter.h
+stdio.h
+-
+stdlib.h
+-
+unistd.h
+-
+string.h
+-
+assert.h
+-
+time.h
+-
+sys/types.h
+-
+sys/stat.h
+-
+fcntl.h
+-
+stdint.h
+-
+
+../include/minicomp.h
+stdio.h
+-
+stdlib.h
+-
+zlib.h
+-
+dc_bytecounter.h
+../include/dc_bytecounter.h
+
 ../include/svpn_net.h
 
 ../include/util.h
@@ -53,6 +85,8 @@ svpn_net.h
 /home/ankit/git/new/S-VPN-master/src/server/svpn_net.h
 util.h
 /home/ankit/git/new/S-VPN-master/src/server/util.h
+minicomp.h
+/home/ankit/git/new/S-VPN-master/src/server/minicomp.h
 
 /home/ankit/git/new/S-VPN-master/src/server/svpn_server.h
 pthread.h

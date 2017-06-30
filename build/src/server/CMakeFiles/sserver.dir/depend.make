@@ -11,6 +11,8 @@ src/server/CMakeFiles/sserver.dir/svpn_fd.c.o: ../src/server/svpn_fd.h
 src/server/CMakeFiles/sserver.dir/svpn_fd.c.o: ../src/server/svpn_server.h
 
 src/server/CMakeFiles/sserver.dir/svpn_server.c.o: ../include/crypt.h
+src/server/CMakeFiles/sserver.dir/svpn_server.c.o: ../include/dc_bytecounter.h
+src/server/CMakeFiles/sserver.dir/svpn_server.c.o: ../include/minicomp.h
 src/server/CMakeFiles/sserver.dir/svpn_server.c.o: ../include/svpn_net.h
 src/server/CMakeFiles/sserver.dir/svpn_server.c.o: ../include/util.h
 src/server/CMakeFiles/sserver.dir/svpn_server.c.o: ../src/server/svpn_fd.h
