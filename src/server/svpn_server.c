@@ -28,6 +28,7 @@
 #define BUFFSIZE   42
 #define ENCRYPT 0
 #define PRINT 0
+#define DEBUG_PRINT 0
 #define EMPTY 1 
 
 static void svpn_sig_handler(int sig) {
@@ -181,7 +182,7 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 	struct sockaddr_in6 addr;
 	socklen_t alen = sizeof(addr);
 	int seed = time(NULL); /* get current time for seed */
-	struct timespec start, end1, end2, end3, end4, comp1, comp2;
+	struct timespec start, end1, end2, end3, end4, comp1, comp2,sleep1,sleep2;
 	float elapsed;
 	long long int acc = 0, acc2 = 0, comp_time, acc_avg = 0, n_iter=0, total_acc=0;
 	struct timeval tv;
@@ -198,6 +199,7 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 	unsigned char buffer[BUFFER_LEN + 1400], tmp_buffer[BUFFER_LEN+1400], n_tmp_buffer[BUFFER_LEN+1400],t_tmp_buffer[BUFFER_LEN+1400], s_tmp_buffer[BUFFER_LEN+1400];
 	int ret, uid, len;
 	fd_set fd_list, fd_list2;
+	int limit = COMPRESS ? 3 : 1;
 	uint32_t *lenmemloc;
 	uint32_t *total_len, *pad_len;
 	int rem_offset, pack_flag, pack_len,fd_flag,empty_flag;
@@ -258,50 +260,58 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 		rem_len = BUFFER_LEN;
 		pack_len = 1400;
 		fd_flag=0;
-		fflush(stdout);
+		//fflush(stdout);
 		//printf("Came to line number %d \n", __LINE__);
-		fflush(stdout);
+		//fflush(stdout);
 		if(FD_ISSET(conn_fd, &fd_list))
 		{
 			rem_offset=0;
 			clock_gettime(CLOCK_REALTIME, &start);
 			pack_flag=0;
 			empty_flag=0;
-			printf("Came to line number %d \n", __LINE__);
+			if(DEBUG_PRINT)
+				printf("Came to line number %d \n", __LINE__);
 			while(rem_len > 0){
-						printf("Came to line number %d \n", __LINE__);
-						//if(FD_ISSET(psc->sock_fd, &fd_list))
-						printf("\nBefore the first recvfrom\n");
-						fflush(stdout);
-						printf("Came to line number %d \n", __LINE__);
-						printf("\nREM_LEN = %d \n",rem_len);
-						fflush(stdout);
+						if(DEBUG_PRINT){
+							printf("Came to line number %d \n", __LINE__);
+							//if(FD_ISSET(psc->sock_fd, &fd_list))
+							printf("\nBefore the first recvfrom\n");
+							fflush(stdout);
+							printf("Came to line number %d \n", __LINE__);
+							printf("\nREM_LEN = %d \n",rem_len);
+							fflush(stdout);
+						}	
 						
 						if(pack_flag==0)	
 							len = recv(conn_fd, tmp_buffer + rem_offset, 8 , 0);
 						else{
 							len = recv(conn_fd, tmp_buffer + rem_offset, rem_len , 0);	
-							printf("\nPADDING_LENGTH_READ = %d\n", len);
+							if(DEBUG_PRINT)
+								printf("\nPADDING_LENGTH_READ = %d\n", len);
 						}
 						if(len < 0)
 							printf("an error: %s\n", strerror(errno));	
+						if(DEBUG_PRINT)
 						printf("\nAfter the first recvfrom\n");
 						
 						fflush(stdout);
 			      
 						//if it is reading for the first time (we want to extract all useful data here)---------------------------
 							if(pack_flag==0){
-								printf("Came to line number %d \n", __LINE__);
+								if(DEBUG_PRINT)
+									printf("Came to line number %d \n", __LINE__);
 							    total_len =   (uint32_t *)&tmp_buffer[0];
 							    pad_len   =   (uint32_t *)&tmp_buffer[4];
 								//int valid_length = *total_len + 4;
 								if(*total_len == 0)
 									empty_flag=1;
 								int valid_length = *total_len + 8;
-								printf("\nvalid_length = %d\n",valid_length);								
+								if(DEBUG_PRINT)
+									printf("\nvalid_length = %d\n",valid_length);								
 								//if it has read the entire data and maybe some padding------------------------------------------- 
 								if(valid_length <= len){
-											printf("Came to line number %d \n", __LINE__);
+											if(DEBUG_PRINT)
+												printf("Came to line number %d \n", __LINE__);
 											
 											memcpy(t_tmp_buffer,tmp_buffer + 8,(*total_len));
 											//Processing it now---------------------------------------------------------------
@@ -309,7 +319,8 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 											rem_offset  = rem_offset  + len;
 											//++++++++++++++++++++++++++++++change according to pad len
 											rem_len = rem_len - len;			
-											printf("Came to line number %d \n", __LINE__);
+											if(DEBUG_PRINT)
+												printf("Came to line number %d \n", __LINE__);
 								}
 								//-------------------------------------------------------------------------------------------------
 
@@ -322,7 +333,8 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 											rem_offset  = rem_offset  + len;
 											//++++++++++++++++++++++++++++++change according to pad len
 											rem_len = rem_len - len;
-											printf("Came to line number %d \n", __LINE__);
+											if(DEBUG_PRINT)
+												printf("Came to line number %d \n", __LINE__);
 											while(valid_length > 0){
 													//len= recvfrom(psc->sock_fd, tmp_buffer+rem_offset, valid_length, 0, (struct sockaddr*)&addr, &alen);
 													//if(FD_ISSET(psc->sock_fd, &fd_list)){
@@ -360,7 +372,8 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 														 	len_buf[te] = *c_len;
 														
 														 	//DEBUG_PRINT____________________________________________________
-														 	printf("\n The %d packet length is %d\n  ", te , len_buf[te]);
+														 	if(DEBUG_PRINT)
+															printf("\n The %d packet length is %d\n  ", te , len_buf[te]);
 														 	fflush(stdout);
 														 	//_______________________________________________________________
 														
@@ -385,9 +398,11 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 
 				               						int var, incr=0,ller;
 													for(var=0;var<te;var++){
-														printf("Came to line number %d \n", __LINE__);
+														if(DEBUG_PRINT)
+															printf("Came to line number %d \n", __LINE__);
 											    		ller = write(psc->tun_fd, buffer+incr, len_buf[var]);
-											   			printf("Came to line number %d \n", __LINE__);
+											   			if(DEBUG_PRINT)
+															printf("Came to line number %d \n", __LINE__);
 														incr=incr+ller;
 													}
 													start_offset = start_offset + comp_chunk_size;
@@ -403,17 +418,20 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 								//--------------------------------------------------------------------------------------------------
 								//if
 								pack_flag=1;
-							    //CODE TO WRITE IT TO THE TUN	
+							    //CODE TO WRITE IT TO THE TUN
+								if(DEBUG_PRINT)	
 								printf("Came to line number %d \n", __LINE__);
 
 								             //ignore-------------------------------------------------------
 											 //printf("\n the src_addr is %s \n",addr.sa_data);
 											 clock_gettime(CLOCK_REALTIME, &end1);
 											 elapsed = diff2float(&start, &end1);
-											 printf("\nThe elapsed time after receiving : %f \n", elapsed);
-											 fflush(stdout);
-											 printf("\nlen=%d\n", len);
-											 fflush(stdout);
+											 if(DEBUG_PRINT){
+												 printf("\nThe elapsed time after receiving : %f \n", elapsed);
+												 fflush(stdout);
+												 printf("\nlen=%d\n", len);
+												 fflush(stdout);
+											  }	 
 											 if(len <= 0 || len > BUFFER_LEN)
 											 continue;
 											 //endignore-----------------------------------------------------
@@ -437,7 +455,8 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 											 	len_buf[te] = *c_len;
 											
 											 	//DEBUG_PRINT____________________________________________________
-											 	printf("\n The %d packet length is %d\n  ", te , len_buf[te]);
+											 	if(DEBUG_PRINT)
+												printf("\n The %d packet length is %d\n  ", te , len_buf[te]);
 											 	fflush(stdout);
 											 	//_______________________________________________________________
 											
@@ -455,8 +474,9 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 											 
 											  
 											 //DEBUG_PRINT__________________________________________________________
-											 printf("\nbefore--tempbuf--%c--uid--%d--beforeend\n",n_tmp_buffer[0],uid);
-											 fflush(stdout);
+											if(DEBUG_PRINT) 
+												printf("\nbefore--tempbuf--%c--uid--%d--beforeend\n",n_tmp_buffer[0],uid);
+											fflush(stdout);
 											 //_____________________________________________________________________
 
 											 //DEBUG_DEFAULT________________________________________________________
@@ -477,6 +497,7 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 				               					}
 											
 						 					//DEBUG_PRINT________________________________________________________________
+											if(DEBUG_PRINT)
 											printf("\nbuffer before typecast\n");
 						              		fflush(stdout);					
 											//___________________________________________________________________________
@@ -529,9 +550,11 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 
 											int var, incr=0,ller;
 											for(var=0;var<te;var++){
-												printf("Came to line number %d \n", __LINE__);
+												if(DEBUG_PRINT)
+													printf("Came to line number %d \n", __LINE__);
 											    ller = write(psc->tun_fd, buffer+incr, len_buf[var]);
-											    printf("Came to line number %d \n", __LINE__);
+											    if(DEBUG_PRINT)
+													printf("Came to line number %d \n", __LINE__);
 												incr=incr+ller;
 											}
 	                                          
@@ -549,20 +572,36 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 											 	*pad=BUFFER_LEN-8;
 												int sent=0;
 												if(FD_ISSET(conn_fd, &fd_list)){
+													if(DEBUG_PRINT)
 													printf("\nSocket is set\n");
 												}
 												else{
+													if(DEBUG_PRINT)
 													printf("\nSocket is not set\n");
 													}
-												 int j,k=0;
-												 for (j=0;j<10000;j++){
-												     k=(((25) * 1000)-25000)/100000 + 0;
-												 } 
+												int j,k=0;
+												for (j=0;j<10000;j++){
+													   k=(((25) * 1000)-25000)/100000 + 0;
+												}
+
+												/*if(acc_avg==0){
+													//sleep1.tv_sec = 0;
+													//sleep1.tv_nsec = ;
+													//nanosleep(&sleep1,&sleep2);
+												}
+												else{
+													//sleep1.tv_sec = 0;
+													//sleep1.tv_nsec = acc_avg;
+													//nanosleep(&sleep1,&sleep2); 
+												}*/
+												if(DEBUG_PRINT)
 												printf("Came to line number %d \n", __LINE__);
 												while(sent < BUFFER_LEN){
-													printf("Came to line number %d \n", __LINE__);
+													if(DEBUG_PRINT)
+														printf("Came to line number %d \n", __LINE__);
 													len=send(conn_fd, buffer + sent , BUFFER_LEN - sent, MSG_NOSIGNAL);
-													printf("Came to line number %d \n", __LINE__);
+													if(DEBUG_PRINT)
+														printf("Came to line number %d \n", __LINE__);
 													sent = sent + len;
 												}
 										}
@@ -570,7 +609,8 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 						
 							}
 						else{
-							printf("Came to line number %d \n", __LINE__);
+							if(DEBUG_PRINT)
+								printf("Came to line number %d \n", __LINE__);
 							 rem_offset  = rem_offset  + len;
 							 //++++++++++++++++++++++++++++++change according to pad len
 							 rem_len     = rem_len     - len;
@@ -580,17 +620,20 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 					//----------------------------------------------------------------------------------------------------------------------
 				
 				//	else 
-				//	   break;	
-				printf("Came to line number %d \n", __LINE__);
+				//	   break;
+				if(DEBUG_PRINT)	
+					printf("Came to line number %d \n", __LINE__);
 			}
 			//init_recv_length=BUFFER_LEN;
-			 printf("Came to line number %d \n", __LINE__);
+			if(DEBUG_PRINT) 
+			printf("Came to line number %d \n", __LINE__);
 		
 		}//The main if ends here "if(FD_ISSET(psc->sock_fd, &fd_list))"
 
 
 		if(FD_ISSET(psc->tun_fd, &fd_list))
-		{	printf("BEFORE READ\n");
+		{	if(DEBUG_PRINT)
+			printf("BEFORE READ\n");
 
 			int bc=0;
 			uint32_t tlen, main_tlen = 0;
@@ -604,7 +647,7 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 			acc = 0;
 			clock_gettime(CLOCK_REALTIME, &start);
 			//LOOP SHURU+_+_+_+_+_+_+_+_+__+_+_+_+__++_+_+_+_++_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+__+_+_+_+_+_+_+_+_
-			for(i=0; i<3 && acc <= ACC_TIME && main_tlen <= BUFFER_LEN-3712 && COMPRESS; i++){
+			for(i=0; i<limit && acc <= ACC_TIME && main_tlen <= BUFFER_LEN-3712 ; i++){
 				
 				memset(tmp_buffer,'0',BUFFER_LEN );
 				tlen = 0;
@@ -629,20 +672,23 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 							clock_gettime(CLOCK_REALTIME, &end1);
 							elapsed = diff2float(&start, &end1);
 							acc =  1000000000*elapsed;
+							if(DEBUG_PRINT)
 							printf("\naccumulated time = %lld\n",acc);
 							fflush(stdout);
-
-							continue;
+							break;
+							//continue;
 
 						}
 
 						if(FD_ISSET(psc->tun_fd, &fd_list2)) {
-							printf("Came to line number %d \n", __LINE__);
-							printf("\nJUST BEFORE READ\n")	;
-							len = read(psc->tun_fd, &tmp_buffer[8] + tlen + 4, BUFFER_LEN-tlen-12); //12 because 8 bytes from initial and 4 additional for keeping the length
+							if(DEBUG_PRINT){
+								printf("Came to line number %d \n", __LINE__);
+								printf("\nJUST BEFORE READ\n")	;
+							}
+								len = read(psc->tun_fd, &tmp_buffer[8] + tlen + 4, BUFFER_LEN-tlen-12); //12 because 8 bytes from initial and 4 additional for keeping the length
 							//acc = acc + timeout.tv_usec;
 							//printf("\nlength read from the tunnel %d\n",len);
-
+							if(DEBUG_PRINT)
 							printf("\naccumulated time = %lld\n",acc);
 							fflush(stdout);
 			
@@ -661,7 +707,8 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 							lenmemloc = (uint32_t *)&(tmp_buffer[8+tlen]);
 							*lenmemloc = len;
 							tlen = tlen + len + 4;
-						   	main_tlen = main_tlen + len + 4; 
+						   	main_tlen = main_tlen + len + 4;
+						   	if(DEBUG_PRINT)	
 							printf("\nREACHES HERE!!!!!!!!!!!!!\n");
 							fflush(stdout);
 							//acc = acc + timeout.tv_usec;
@@ -675,6 +722,7 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 
 					}
 					else{
+						if(DEBUG_PRINT)
 						printf("\nacc = %lld\n",acc );
 						fflush(stdout);
 						break;
@@ -693,7 +741,7 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 				
 				if (len <= 0 || len > BUFFER_LEN)
 					continue;
-				
+				if(DEBUG_PRINT)
 				printf("Came to line number %d \n", __LINE__);
 				/*pheader = (struct svpn_net_ipv4_header*)(&tmp_buffer[12]);
 
@@ -709,18 +757,21 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 					mprintf(LWARN, "User #%d not exist", uid);
 					continue;
 				}*/
-				
-				printf("Came to line number %d \n", __LINE__);
-				printf("\ntlen = %d\n",tlen);
+				if(DEBUG_PRINT){
+					printf("Came to line number %d \n", __LINE__);
+					printf("\ntlen = %d\n",tlen);
+				}
 				if (ENCRYPT) 
 					Encrypt(&(psc->clients[uid]->table), tmp_buffer, buffer, len);
 				
 				else {
 					
 					if(COMPRESS && tlen>0){
-						printf("Came to line number %d \n", __LINE__);
+						if(DEBUG_PRINT)
+							printf("Came to line number %d \n", __LINE__);
 						comp_len = minicomp(buffer + (main_tlen - tlen) + 8, tmp_buffer + 8, tlen, BUFFER_LEN-(main_tlen - tlen + 8));
-						printf("Came to line number %d \n", __LINE__);
+						if(DEBUG_PRINT)	
+							printf("Came to line number %d \n", __LINE__);
 						totallen2 = (uint32_t *)&(buffer[0]);
 						pad2 = (uint32_t *)&(buffer[4]);
 						*totallen2 = (main_tlen - tlen) + comp_len;
@@ -740,12 +791,15 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 			}	
 			//LOOP YAHAN TAK_++_++_++_++_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+_+__+_+_+_+_+_+__+_+_+_+_+__+_+__+_+__+__+__+_+_+_+_+_+_+_++_+_+_+_+_+_
 			int sent_len=0,readlen=1400;
+			if(DEBUG_PRINT)
 			printf("Came to line number %d \n", __LINE__);
 
 			
 			while(sent_len < BUFFER_LEN){
-				printf("Came to line number %d \n", __LINE__);
-				printf("\nsent_len = %d\n",sent_len);
+				if(DEBUG_PRINT){
+					printf("Came to line number %d \n", __LINE__);
+					printf("\nsent_len = %d\n",sent_len);
+				}
 				len = send(conn_fd, buffer + sent_len , BUFFER_LEN - sent_len, MSG_NOSIGNAL);
 				if(len < 0)
 				     printf("an error: %s\n", strerror(errno));
@@ -763,7 +817,7 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 					sent_len = sent_len + len;
 			}
 			
-
+			if(DEBUG_PRINT)
 			printf("Came to line number %d \n", __LINE__);
 			//len = send(conn_fd, buffer, BUFFER_LEN, 0);
 					
@@ -780,17 +834,20 @@ int svpn_server_handle_thread(struct svpn_server* pvoid)
 		}
 		//printf("Came to line number %d \n", __LINE__);
 		if(n_iter==20){
-			n_iter=1;
-			total_acc = acc + acc2;
-			acc_avg = total_acc;
+			n_iter=n_iter/5;
+			total_acc = total_acc/5;
+			//acc_avg = total_acc;
 		}
 		else{
 			n_iter++;
 			total_acc = total_acc + acc + acc2;
-			acc_avg = total_acc/n_iter; 
+			acc_avg = total_acc/n_iter;
+		   	if(DEBUG_PRINT)
+			printf("\nAVG_ACC = %lld\n", acc_avg);	
 		}
 
 	}
+	if(DEBUG_PRINT)
 	printf("Came to line number %d \n", __LINE__);
 	return 0;
 }
