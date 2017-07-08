@@ -1,0 +1,132 @@
+#!/bin/bash
+
+# Released under the GPL: http://www.gnu.org/licenses/gpl.txt
+
+# hrlimit -- rate limit traffic to a specific host
+
+# If you changed anything and want to reload the script, execute 'tc qdisc del
+# dev $DEV root' to clean up your existing configuration. 
+
+if [[ -z $1 ]]
+then
+cat <<TEXT
+hrlimit -- rate limit traffic to a specified host/port
+usage: hrlimit HOST PORT RATELIMIT
+example: hrlimit 10.10.10.10 10000 1500kbit
+Specify a limit of 0 to remove the rule.
+TEXT
+exit
+fi
+
+HOST=$1
+PORT=$2
+LIMIT=$3
+
+DEV=p131p1
+DEVBW=1000mbit
+LOCK=/tmp/hrlimit.lock
+
+function recover
+{
+	echo "Removing qdisc..."
+	tc qdisc del dev $DEV root
+}
+
+function abort
+{
+	recover
+	exit 1
+}
+
+
+if [[ -f $LOCK ]]
+then
+	echo "Previous ratelimit in effect:"
+	cat $LOCK
+	if recover
+	then
+		rm $LOCK
+		echo "Removed."
+	else
+		echo "Problem clearing hrlimit! Aborting."
+		exit 1
+	fi
+fi
+
+if [[ $LIMIT == 0 ]] || [[ -z $LIMIT ]]
+then
+	echo "0-limit specified -- quitting."
+	exit
+fi
+
+# The first line installs a class based queue on your interface, and tells the
+# kernel that for calculations, it can be assumed to be a 10mbit interface. If
+# you get this wrong, no real harm is done. But getting it right will make
+# everything more precise. 
+
+#if ! tc qdisc add dev $DEV root handle 1: cbq avpkt 1000 bandwidth $DEVBW
+
+if ! tc qdisc add dev $DEV root handle 1: htb default 30 
+then
+	echo "Problem installing class!"
+	abort
+fi
+
+# The second line creates a $LIMIT class with some reasonable defaults. For
+# details, see the cbq manpages and Chapter 9. 
+# http://lartc.org/howto/lartc.qdisc.html
+
+# CBQ code
+# if ! tc class add dev $DEV parent 1: classid 1:1 cbq rate $LIMIT \
+#		allot 1500 prio 5 bounded isolated 
+
+if ! tc class add dev $DEV parent 1: classid 1:1 htb rate $DEVBW burst 15k
+then
+	echo "Problem setting limiting class 0"
+	abort
+fi
+
+if ! tc class add dev $DEV parent 1:1 classid 1:10 htb rate $LIMIT ceil $LIMIT
+then
+	echo "Problem setting limiting class 1"
+	abort
+fi
+
+if ! tc class add dev $DEV parent 1:1 classid 1:30 htb rate $DEVBW ceil $DEVBW burst 15k
+then
+	echo "Problem setting limiting class 2"
+	abort
+fi
+
+# The script can further be improved by adding a last optional line 'tc qdisc
+# add dev $DEV parent 1:1 sfq perturb 10'. See Section 9.2.3 for details on
+# what this does. 
+# http://lartc.org/howto/lartc.qdisc.classless.html#LARTC.SFQ
+
+if ! tc qdisc add dev $DEV parent 1:10 handle 10: sfq perturb 10
+then
+	echo "Problem setting SFQ perturbation. (1)"
+	abort
+fi
+
+if ! tc qdisc add dev $DEV parent 1:30 handle 30: sfq perturb 10
+then
+	echo "Problem setting SFQ perturbation. (1)"
+	abort
+fi
+
+# The last line tells which traffic should go to the shaped class. Traffic not
+# matched by this rule is NOT shaped. To make more complicated matches
+# (subnets, source ports, destination ports), see Section 9.6.2. 
+
+U32="tc filter add dev $DEV parent 1:0 protocol ip prio 1 u32"
+
+if ! $U32 match ip dport $PORT 0xffff classid 1:10
+then
+	echo "Problem setting matching rule!"
+	abort
+fi
+
+
+echo "Installed new limit:"
+echo "device: $DEV rate: $DEVBW limit: $LIMIT host: $HOST $PORT" | tee $LOCK
